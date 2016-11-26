@@ -65,7 +65,7 @@ public class VisionTool implements Runnable {
 
 	// Setup
 	final static String CAMERA = "0";
-	final static Mode MODE = Mode.RELEASE;
+	final static Mode MODE = Mode.TEST_ZONE;//RELEASE;
 
 	static long time = 0;
 

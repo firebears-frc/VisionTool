@@ -31,7 +31,7 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 	static final double minimumSideFraction = 0.1;
 	static final int MINSIZE = 100;	
 
-	static final float HUE_MAX_DISTANCE = 0.2f;
+	static final float HUE_MAX_DISTANCE = 0.8f;
 	static final float SAT_MAX_DISTANCE = 0.4f;
 	static final float VAL_MINIMUM = 0.1f;
 
@@ -167,7 +167,11 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 			result.angle = angleoff;
 			result.distance = distance;
 			result.tilt = angle;
-			result.confidence = 1;
+			if(Math.abs(result.tilt) < 20.0) {
+				result.confidence = 1;
+			}else{
+				result.confidence = 0;
+			}
 	//			synchronized(server) {
 	//				Thread thread = new Thread(server);
 	//				thread.start();
