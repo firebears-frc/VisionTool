@@ -1,4 +1,4 @@
-package VisionTool;
+package org.firebears.visiontool;
 
 import boofcv.alg.feature.detect.edge.CannyEdge;
 import boofcv.alg.feature.detect.edge.EdgeContour;
