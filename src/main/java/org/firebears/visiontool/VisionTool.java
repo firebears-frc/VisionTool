@@ -127,7 +127,7 @@ public class VisionTool {
 		ImagePanel gui = new ImagePanel();
 		gui.setPreferredSize(webcam.getViewSize());
 
-		ShowImages.showWindow(gui, "2017 Vision Tool", true);
+		ShowImages.showWindow(gui, "2846 Vision Tool ( 2017 )", true);
 
 		while( true ) {
 			BufferedImage image = webcam.getImage();
