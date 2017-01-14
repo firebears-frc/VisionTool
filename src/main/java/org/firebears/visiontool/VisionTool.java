@@ -51,14 +51,16 @@ public class VisionTool {
 	static double splitFraction = 0.05;
 	static double minimumSideFraction = 0.1;
 	
-	static double threshold_hue = 6.2262726;
-	static double threshold_sat = 0.973544967;
-	static double threshold_val = 189.0;
+	static double threshold_hue = 2.6;
+	static double threshold_sat = 0.8;
+	static double threshold_val = 158.0;
 
-	static final float HUE_MAX_DISTANCE = 0.1f;
+	static final float HUE_MAX_DISTANCE = 0.2f;
 	static final float SAT_MAX_DISTANCE = 0.4f;
-	static final float VAL_MAX_DISTANCE = 0.1f;
-	
+	static final float VAL_MINIMUM = 0.1f;
+
+	static final int MINSIZE = 100;	
+
 	static BufferedImage webcam_img;
 	static final Color WHITE = new Color(1.0f,1.0f,1.0f);
 //	static Mat frame;
@@ -97,6 +99,19 @@ public class VisionTool {
 		List<Contour> contours = BinaryImageOps.contour(binary, ConnectRule.EIGHT, null);
 		g2.setStroke(new BasicStroke(2));
 
+		int xmax1 = 0;
+		int ymax1 = 0;
+		int xmin1 = 0;
+		int ymin1 = 0;
+		
+		int xmax2 = 0;
+		int ymax2 = 0;
+		int xmin2 = 0;
+		int ymin2 = 0;
+
+		int size1 = 0;
+		int size2 = 0;
+
 		// used to select colors for each line
 		for( Contour c : contours ) {
 			// Only the external contours are relevant.
@@ -105,12 +120,10 @@ public class VisionTool {
 					splitFraction, minimumSideFraction,100);
 
 			// Target should have 4 sides
-			if(vertexes.size() < 1) {
+			if(vertexes.size() < 3) {
 				continue;
 			}
 
-//			int xpasses = 0;
-	//		int ypasses = 0;
 			int minx = vertexes.get(0).x;
 			int miny = vertexes.get(0).y;
 			int maxx = vertexes.get(0).x;
@@ -121,26 +134,50 @@ public class VisionTool {
 				
 				if(x > maxx) {
 					maxx = x;
-		//			xpasses ++;
 				}
 				if(y > maxy) {
 					maxy = y;
-		//			ypasses ++;
 				}
 				if(x < minx) {
 					minx = x;
-	//				xpasses ++;
 				}
 				if(y < miny) {
 					miny = y;
-	//				ypasses ++;
 				}
 			}
-//			if(xpasses > 2 || ypasses > 2) continue;
 			
-			g2.setColor(new Color(0.f, 0.f, 1.f));
-			VisualizeShapes.drawRectangle(new Rectangle2D_I32(minx, miny, maxx, maxy), g2);
+			int thissize = ( maxy - miny ) * (maxx - minx);
+
+			if(thissize < MINSIZE) {
+				continue;
+			}
+
+			if(thissize > size1) {
+				if(thissize > size2) {
+					size1 = size2;
+					xmax1 = xmax2;
+					xmin1 = xmin2;
+					ymax1 = ymax2;
+					ymin1 = ymin2;
+					size2 = thissize;
+					xmax2 = maxx;
+					xmin2 = minx;
+					ymax2 = maxy;
+					ymin2 = miny;
+				} else {
+					size1 = thissize;
+					xmax1 = maxx;
+					xmin1 = minx;
+					ymax1 = maxy;
+					ymin1 = miny;
+				}
+			}
+//			g2.setColor(new Color(0.f, 0.f, 1.f));
+//			VisualizeShapes.drawRectangle(new Rectangle2D_I32(minx, miny, maxx, maxy), g2);
 		}
+		g2.setColor(new Color(0.f, 0.f, 1.f));
+		VisualizeShapes.drawRectangle(new Rectangle2D_I32(xmin1, ymin1, xmax1, ymax1), g2);
+		VisualizeShapes.drawRectangle(new Rectangle2D_I32(xmin2, ymin2, xmax2, ymax2), g2);
 	}
 	
 	public static BufferedImage selectorHSV( BufferedImage image, double h, double s, double v ) {
@@ -167,16 +204,15 @@ public class VisionTool {
 				// Hue is an angle in radians, so simple subtraction doesn't work
 				double dh = UtilAngle.dist(H.unsafe_get(x,y),h);
 				double ds = (S.unsafe_get(x,y)-s)*adjustUnits;
-				double dv = (V.unsafe_get(x, y)-v)*adjustValue;
+				double dv = V.unsafe_get(x, y)*adjustValue;
  
 				// Test if hue, saturation, and value are in range
 				double dist2h = Math.abs(dh);
 				double dist2s = Math.abs(ds);
-				double dist2v = Math.abs(dv);
 				if((dist2h <= HUE_MAX_DISTANCE ||
 					Double.isNaN(dist2h)) &&
 					dist2s <= SAT_MAX_DISTANCE &&
-					dist2v <= VAL_MAX_DISTANCE)
+					dv >= VAL_MINIMUM)
 				{
 					output.setRGB(x,y,image.getRGB(x,y));
 				}
@@ -224,8 +260,8 @@ public class VisionTool {
 	
 	public static void main(String[] args) {
 		// Open a webcam at a resolution close to 640x480
-//		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
-		Webcam webcam = UtilWebcamCapture.openDevice("1", 640, 480);
+		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
+//		Webcam webcam = UtilWebcamCapture.openDevice("0", 640, 480);
 
 //		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		
