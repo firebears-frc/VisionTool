@@ -53,7 +53,7 @@ public class VisionTool {
 				System.out.println("H = " + color[0]+" S = "+color[1]+" V = "+color[2]);
 				temp_hue = color[0];
 				temp_sat = color[1];
-				temp_val = color [2];
+				temp_val = color[2];
 			}
 		});
  
@@ -156,7 +156,9 @@ public class VisionTool {
 		ColorHsv.rgbToHsv_F32(input,hsv);
 		
 		// Euclidean distance squared threshold for deciding which pixels are members of the selected set
-		float maxDist2 = 0.4f*0.4f;
+		float maxDist2h = 0.4f*0.4f;
+		float maxDist2s = 0.4f*0.4f;
+		float maxDist2v = 0.4f*0.4f;
 		 
 		// Extract hue and saturation bands which are independent of intensity
 		GrayF32 H = hsv.getBand(0);
@@ -165,8 +167,8 @@ public class VisionTool {
 		 
 		// Adjust the relative importance of Hue and Saturation.
 		// Hue has a range of 0 to 2*PI and Saturation from 0 to 1.
-		double adjustUnits = (float)(Math.PI/2.0);
-		double adjustValue = (float)(1.0/255.0);
+		double adjustUnits = Math.PI / 2.0;
+		double adjustValue = 1.0 / 255.0;
 		 
 		// step through each pixel and mark how close it is to the selected color
 		BufferedImage output = new BufferedImage(input.width,input.height,BufferedImage.TYPE_INT_RGB);
@@ -178,8 +180,12 @@ public class VisionTool {
 				double dv = (V.unsafe_get(x, y)-v)*adjustValue;
  
 				// this distance measure is a bit naive, but good enough for to demonstrate the concept
-				double dist2 = dh*dh + ds*ds + dv*dv;
-				if( dist2 <= maxDist2 ) {
+				double dist2h = dh*dh;
+				double dist2s = ds*ds;
+				double dist2v = dv*dv;
+				if((dist2h <= maxDist2h || Double.isNaN(dist2h))
+					&& dist2s <= maxDist2s && v >= 0.5)
+				{
 					output.setRGB(x,y,image.getRGB(x,y));
 				}
 			}
