@@ -1,5 +1,6 @@
 package org.firebears.visiontool;
 
+import boofcv.alg.color.ColorHsv;
 import boofcv.alg.feature.detect.edge.CannyEdge;
 import boofcv.alg.feature.detect.edge.EdgeContour;
 import boofcv.alg.feature.detect.edge.EdgeSegment;
@@ -17,6 +18,8 @@ import boofcv.struct.ConnectRule;
 import boofcv.struct.PointIndex_I32;
 import boofcv.struct.image.GrayF32;
 import boofcv.struct.image.GrayU8;
+import boofcv.struct.image.Planar;
+import georegression.metric.UtilAngle;
 import georegression.struct.shapes.Rectangle2D_I32;
 
 import com.github.sarxos.webcam.Webcam;
@@ -26,10 +29,35 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 import javax.swing.JPanel;
 
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
 public class VisionTool {
 	
 	static double splitFraction = 0.05;
 	static double minimumSideFraction = 0.1;
+	
+	static double temp_sat = 0.0;
+	static double temp_val = 0.0;
+	static double temp_hue = 0.0;
+	
+	static BufferedImage webcam_img;
+	
+	public static void printClickedColor( ImagePanel guk ) {
+		guk.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				float[] color = new float[3];
+				int rgb = webcam_img.getRGB(e.getX(),e.getY());
+				ColorHsv.rgbToHsv((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, color);
+				System.out.println("H = " + color[0]+" S = "+color[1]+" V = "+color[2]);
+				temp_hue = color[0];
+				temp_sat = color[1];
+				temp_val = color [2];
+			}
+		});
+ 
+	}
 	
 	public static void fitCannyBinary( Graphics2D g2, GrayF32 input ) {
 		GrayU8 binary = new GrayU8(input.width,input.height);
@@ -119,6 +147,47 @@ public class VisionTool {
 			}
 		}
 	}
+	
+	public static BufferedImage selectorHSV( BufferedImage image, double h, double s, double v ) {
+		Planar<GrayF32> input = ConvertBufferedImage.convertFromMulti(image,null,true,GrayF32.class);
+		Planar<GrayF32> hsv = input.createSameShape();
+		
+		// Convert into HSV
+		ColorHsv.rgbToHsv_F32(input,hsv);
+		
+		// Euclidean distance squared threshold for deciding which pixels are members of the selected set
+		float maxDist2 = 0.4f*0.4f;
+		 
+		// Extract hue and saturation bands which are independent of intensity
+		GrayF32 H = hsv.getBand(0);
+		GrayF32 S = hsv.getBand(1);
+		GrayF32 V = hsv.getBand(2);
+		 
+		// Adjust the relative importance of Hue and Saturation.
+		// Hue has a range of 0 to 2*PI and Saturation from 0 to 1.
+		double adjustUnits = (float)(Math.PI/2.0);
+		double adjustValue = (float)(1.0/255.0);
+		 
+		// step through each pixel and mark how close it is to the selected color
+		BufferedImage output = new BufferedImage(input.width,input.height,BufferedImage.TYPE_INT_RGB);
+		for( int y = 0; y < hsv.height; y++ ) {
+			for( int x = 0; x < hsv.width; x++ ) {
+				// Hue is an angle in radians, so simple subtraction doesn't work
+				double dh = UtilAngle.dist(H.unsafe_get(x,y),h);
+				double ds = (S.unsafe_get(x,y)-s)*adjustUnits;
+				double dv = (V.unsafe_get(x, y)-v)*adjustValue;
+ 
+				// this distance measure is a bit naive, but good enough for to demonstrate the concept
+				double dist2 = dh*dh + ds*ds + dv*dv;
+				if( dist2 <= maxDist2 ) {
+					output.setRGB(x,y,image.getRGB(x,y));
+				}
+			}
+		}		
+
+		return output;
+		
+	}
 
 	public static void main(String[] args) {
 
@@ -129,24 +198,34 @@ public class VisionTool {
 		ListDisplayPanel listpanel = new ListDisplayPanel();
 		ImagePanel gui = new ImagePanel();
 		ImagePanel guj = new ImagePanel();
+		ImagePanel guk = new ImagePanel();
 		gui.setPreferredSize(new Dimension(960, 720));
 		guj.setPreferredSize(new Dimension(960, 720));
+		guk.setPreferredSize(new Dimension(960, 720));
 		listpanel.addItem((JPanel)gui, "Raw Camera");
 		listpanel.addItem((JPanel)guj, "Processed");
+		listpanel.addItem((JPanel) guk, "Test_Zone");
 
 		ShowImages.showWindow(listpanel, "2846 Vision Tool ( 2017 )", true);
+		
+		
+		printClickedColor(gui);
 
+		printClickedColor(guk);
+
+			
 		while( true ) {
 			BufferedImage image = webcam.getImage();
-			GrayF32 gray = ConvertBufferedImage.convertFrom(image,(GrayF32)null);
+			webcam_img = image;
+//			GrayF32 gray = ConvertBufferedImage.convertFrom(image,(GrayF32)null);
 
-			Graphics2D g2 = image.createGraphics();
-			
+//			Graphics2D g2 = image.createGraphics();
 //			fitCannyEdges(g2, gray);
 //			fitCannyBinary(g2, gray);
 
 			gui.setBufferedImageSafe(image);
-			guj.setBufferedImageSafe(image);
+			guj.setBufferedImageSafe(selectorHSV(image, 6.2262726, 0.973544967, 189.0));
+			guk.setBufferedImageSafe(selectorHSV(image, temp_hue, temp_sat, temp_val));
 		}
 	}
 }
