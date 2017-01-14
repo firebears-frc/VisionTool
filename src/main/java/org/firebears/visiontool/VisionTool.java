@@ -77,7 +77,7 @@ public class VisionTool implements Runnable {
 
 	// Setup
 	final static String CAMERA = "0";
-	final static Mode MODE = Mode.TEST_ZONE;
+	final static Mode MODE = Mode.RELEASE;
 
 	/**
 	 * Initialize color picker for real-time calibration in HSV for a
@@ -354,7 +354,7 @@ public class VisionTool implements Runnable {
 		}
 		FrameCounter.last_frame = System.currentTimeMillis();
 		VisionTool vision_tool = new VisionTool();
-		for(int i = 0; i < 4; i++) {
+		for(int i = 0; i < 8; i++) {
 			Thread vision_tool_thread = new Thread(vision_tool);
 			vision_tool_thread.start();
 		}
