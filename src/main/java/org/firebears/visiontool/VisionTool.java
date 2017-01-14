@@ -9,6 +9,7 @@ import boofcv.alg.shapes.ShapeFittingOps;
 import boofcv.factory.feature.detect.edge.FactoryEdgeDetectors;
 import boofcv.gui.feature.VisualizeShapes;
 import boofcv.gui.image.ImagePanel;
+import boofcv.gui.ListDisplayPanel;
 import boofcv.gui.image.ShowImages;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.io.webcamcapture.UtilWebcamCapture;
@@ -23,6 +24,7 @@ import com.github.sarxos.webcam.Webcam;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.List;
+import javax.swing.JPanel;
 
 public class VisionTool {
 	
@@ -121,13 +123,18 @@ public class VisionTool {
 	public static void main(String[] args) {
 
 		// Open a webcam at a resolution close to 640x480
-		Webcam webcam = UtilWebcamCapture.openDefault(640,480);
+		Webcam webcam = UtilWebcamCapture.openDefault(1280,760);
 
 		// Create the panel used to display the image and feature tracks
+		ListDisplayPanel listpanel = new ListDisplayPanel();
 		ImagePanel gui = new ImagePanel();
-		gui.setPreferredSize(webcam.getViewSize());
+		ImagePanel guj = new ImagePanel();
+		gui.setPreferredSize(new Dimension(960, 720));
+		guj.setPreferredSize(new Dimension(960, 720));
+		listpanel.addItem((JPanel)gui, "Raw Camera");
+		listpanel.addItem((JPanel)guj, "Processed");
 
-		ShowImages.showWindow(gui, "2846 Vision Tool ( 2017 )", true);
+		ShowImages.showWindow(listpanel, "2846 Vision Tool ( 2017 )", true);
 
 		while( true ) {
 			BufferedImage image = webcam.getImage();
@@ -135,10 +142,11 @@ public class VisionTool {
 
 			Graphics2D g2 = image.createGraphics();
 			
-			fitCannyEdges(g2, gray);
-			fitCannyBinary(g2, gray);
+//			fitCannyEdges(g2, gray);
+//			fitCannyBinary(g2, gray);
 
 			gui.setBufferedImageSafe(image);
+			guj.setBufferedImageSafe(image);
 		}
 	}
 }
