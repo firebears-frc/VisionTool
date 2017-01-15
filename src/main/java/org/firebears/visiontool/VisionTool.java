@@ -36,8 +36,8 @@ public class VisionTool implements Runnable {
 	
 	private static final int NUMBER_OF_THREADS = 1;
 
-	private ForkJoinPool forkJoinPool;
-	public ArrayBlockingQueue<VisionProcessTask> queue;
+//	private ForkJoinPool forkJoinPool;
+//	public ArrayBlockingQueue<VisionProcessTask> queue;
 
 	static UDPServer server;
 
@@ -162,6 +162,8 @@ public class VisionTool implements Runnable {
 		return webcam.getImage();
 	}
 
+	static BufferedImage webcamImage;
+
 	/**
 	 * This is the start of the program.  It should start 4 threads after
 	 * initializing shared data.
@@ -176,24 +178,32 @@ public class VisionTool implements Runnable {
 		server = new UDPServer("10.28.46.2", 5810);
 
 		VisionTool vision_tool = new VisionTool();
-		vision_tool.forkJoinPool = new ForkJoinPool(NUMBER_OF_THREADS);
-		vision_tool.queue = new ArrayBlockingQueue(NUMBER_OF_THREADS);
+//		vision_tool.forkJoinPool = new ForkJoinPool(NUMBER_OF_THREADS);
+//		vision_tool.queue = new ArrayBlockingQueue(NUMBER_OF_THREADS);
+
+		webcamImage = getImage();
+		if(MODE == Mode.TEST_ZONE) {
+			print_clicked_colors(webcamImage);
+		}
 
 		Thread vision_tool_thread = new Thread(vision_tool);
 		vision_tool_thread.start();
-
-		BufferedImage webcam = getImage();
-		if(MODE == Mode.TEST_ZONE) {
-			print_clicked_colors(webcam);
-		}
 		
 		while(true) {
-			while(System.currentTimeMillis() < time + 100);
-			time += 100; // System.currentTimeMillis();
+//			while(System.currentTimeMillis() < time + 100);
+//			time += 100; // System.currentTimeMillis();
 
-			webcam = getImage();
-			VisionProcessTask t = new VisionProcessTask(webcam);
-			vision_tool.forkJoinPool.execute(t);
+			time = System.currentTimeMillis();
+			
+//			System.out.println(">>> Image Capture " + (System.currentTimeMillis() - time));
+			time = System.currentTimeMillis();
+			synchronized(webcamImage) {
+				server.send(VisionProcessTask.onethread(webcamImage));
+			}
+			System.out.println(">>> Vision Process" + (System.currentTimeMillis() - time));
+//			VisionProcessTask t = new VisionProcessTask(webcam);
+//			vision_tool.forkJoinPool.execute(t);
+//			server.send(t.join());
 
 //			while(System.currentTimeMillis() <= time + 250);
 //			time += 250;//System.currentTimeMillis();
@@ -201,11 +211,11 @@ public class VisionTool implements Runnable {
 //			time = newtime;
 
 			// Keep on waiting for open space in queue....
-			try {
+			/*try {
 			 	vision_tool.queue.offer(t, 100, TimeUnit.DAYS);
 			}catch (Exception e) {
 				// Ignore exceptions, nothing we can do about it
-			}
+			}*/
 		}
 	}
 
@@ -214,10 +224,13 @@ public class VisionTool implements Runnable {
 	**/
 	public void run() {
 		while(true) {
-			VisionProcessTask task = queue.poll();
-			if(task != null) {
-				server.send(task.join());
+			synchronized(webcamImage) {
+				webcamImage = getImage();
 			}
+//			VisionProcessTask task = queue.poll();
+//			if(task != null) {
+//				server.send(task.join());
+//			}
 		}
 	}
 }

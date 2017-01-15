@@ -25,7 +25,7 @@ import boofcv.factory.feature.detect.edge.FactoryEdgeDetectors;
 import georegression.metric.UtilAngle;
 import georegression.struct.shapes.Rectangle2D_I32;
 
-public class VisionProcessTask extends ForkJoinTask<VisionResult> {
+public class VisionProcessTask /* extends ForkJoinTask<VisionResult> */ {
 
 	static final double splitFraction = 0.05;
 	static final double minimumSideFraction = 0.1;
@@ -39,19 +39,19 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 	public static double threshold_sat = 0.8;
 	public static double threshold_val = 158.0;
 
-	BufferedImage src;
-	VisionResult result;
+	static BufferedImage src;
+	static VisionResult result = new VisionResult();
 
 	VisionProcessTask(BufferedImage src_param) {
 		src = src_param;
-		result = new VisionResult();
+//		result = new VisionResult();
 	}
 
 	/**
 	 * Find the position of the target if it exists otherwise say
 	 * that it doesn't.
 	**/
-	public void fitCannyBinary(GrayF32 input, BufferedImage webcam_img) {
+	public static void fitCannyBinary(GrayF32 input, BufferedImage webcam_img) {
 		Graphics2D g2 = webcam_img.createGraphics();
 		GrayU8 binary = new GrayU8(input.width,input.height);
 
@@ -196,7 +196,7 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 	/**
 	 * Filter out colors depending on the HSV threshold.
 	**/
-	public BufferedImage selectorHSV( BufferedImage image, double h, double s, double v ) {
+	public static BufferedImage selectorHSV( BufferedImage image, double h, double s, double v ) {
 /*		Planar<GrayF32> input = ConvertBufferedImage.convertFromMulti(image,null,true,GrayF32.class);
 		Planar<GrayF32> hsv = input.createSameShape();
 	
@@ -253,9 +253,9 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 		return output;
 	}
 
-	long time = 0;
+	static long time = 0;
 
-	public boolean exec() {
+	public static boolean exec() {
 /** OpenCV camera start **/
 //		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	
@@ -287,9 +287,15 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 		result = v;
 	}
 
-	public VisionResult getRawResult() {
+	public static VisionResult getRawResult() {
 		long newTime = System.currentTimeMillis();
 		System.out.println("LAG: " + (newTime - time) + " millis");
 		return result;
+	}
+
+	public static VisionResult onethread(BufferedImage src_param) {
+		src = src_param;
+		exec();
+		return getRawResult();
 	}
 }
