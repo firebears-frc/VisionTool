@@ -34,7 +34,7 @@ import org.firebears.visiontool.*;
 
 public class VisionTool implements Runnable {
 	
-	private static final int NUMBER_OF_THREADS = 8;
+	private static final int NUMBER_OF_THREADS = 1;
 
 	private ForkJoinPool forkJoinPool;
 	public ArrayBlockingQueue<VisionProcessTask> queue;

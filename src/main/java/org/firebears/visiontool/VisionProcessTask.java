@@ -253,6 +253,8 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 		return output;
 	}
 
+	long time = 0;
+
 	public boolean exec() {
 /** OpenCV camera start **/
 //		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -262,6 +264,7 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 /** OpenCV camera end **/
 	
 		// Create the panel used to display the image and feature tracks
+		time = System.currentTimeMillis();
 		if(VisionTool.MODE == VisionTool.Mode.DEMO_ZONE ||
 			VisionTool.MODE == VisionTool.Mode.TEST_ZONE)
 		{
@@ -285,6 +288,8 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 	}
 
 	public VisionResult getRawResult() {
+		long newTime = System.currentTimeMillis();
+		System.out.println("LAG: " + (newTime - time) + " millis");
 		return result;
 	}
 }
