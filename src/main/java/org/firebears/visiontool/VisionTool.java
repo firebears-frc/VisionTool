@@ -34,7 +34,7 @@ import org.firebears.visiontool.*;
 
 public class VisionTool implements Runnable {
 	
-	private static final int NUMBER_OF_THREADS = 4;
+	private static final int NUMBER_OF_THREADS = 8;
 
 	private ForkJoinPool forkJoinPool;
 	public ArrayBlockingQueue<VisionProcessTask> queue;
@@ -65,7 +65,7 @@ public class VisionTool implements Runnable {
 
 	// Setup
 	final static String CAMERA = "0";
-	final static Mode MODE = Mode.TEST_ZONE;
+	final static Mode MODE = Mode.RELEASE;
 
 	static long time = 0;
 
@@ -197,8 +197,8 @@ public class VisionTool implements Runnable {
 
 			vision_tool.forkJoinPool.execute(t);
 
-			while(System.currentTimeMillis() <= time + 100);
-			time += 100;//System.currentTimeMillis();
+//			while(System.currentTimeMillis() <= time + 250);
+//			time += 250;//System.currentTimeMillis();
 //			System.out.println("Time " + (newtime - time));
 //			time = newtime;
 
