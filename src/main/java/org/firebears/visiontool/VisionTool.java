@@ -190,10 +190,10 @@ public class VisionTool implements Runnable {
 		}
 		
 		while(true) {
-			VisionProcessTask t;
+			while(System.currentTimeMillis() < time + 150);
+			time += 150; // System.currentTimeMillis();
 
-			t = new VisionProcessTask(webcam);
-
+			VisionProcessTask t = new VisionProcessTask(webcam);
 			vision_tool.forkJoinPool.execute(t);
 
 //			while(System.currentTimeMillis() <= time + 250);

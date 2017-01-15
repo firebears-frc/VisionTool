@@ -43,6 +43,7 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 	VisionResult result;
 
 	VisionProcessTask(BufferedImage src_param) {
+		src_param = VisionTool.getImage();
 		src = src_param;
 		result = new VisionResult();
 	}
@@ -249,8 +250,6 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 //		camera = new VideoCapture(0);
 /** OpenCV camera end **/
 	
-		src = VisionTool.getImage();
-
 		// Create the panel used to display the image and feature tracks
 		if(VisionTool.MODE == VisionTool.Mode.DEMO_ZONE ||
 			VisionTool.MODE == VisionTool.Mode.TEST_ZONE)
