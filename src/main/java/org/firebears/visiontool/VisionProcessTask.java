@@ -194,7 +194,7 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 	 * Filter out colors depending on the HSV threshold.
 	**/
 	public BufferedImage selectorHSV( BufferedImage image, double h, double s, double v ) {
-		Planar<GrayF32> input = ConvertBufferedImage.convertFromMulti(image,null,true,GrayF32.class);
+/*		Planar<GrayF32> input = ConvertBufferedImage.convertFromMulti(image,null,true,GrayF32.class);
 		Planar<GrayF32> hsv = input.createSameShape();
 	
 		// Convert into HSV
@@ -208,23 +208,31 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 		// Adjust the relative importance of Hue and Saturation.
 		// Hue has a range of 0 to 2*PI and Saturation from 0 to 1.
 		double adjustUnits = Math.PI / 2.0;
-		double adjustValue = 1.0 / 255.0;
+		double adjustValue = 1.0 / 255.0;*/
 		 
 		// step through each pixel and mark how close it is to the selected color
 		BufferedImage output = new BufferedImage(image.getWidth(),image.getHeight(),BufferedImage.TYPE_INT_RGB);
 		for( int y = 0; y < image.getHeight(); y++ ) {
 			for( int x = 0; x < image.getWidth(); x++ ) {
-	//				Color color = new Color(image.getRGB(x, y));
-	//				Color.RGBtoHSB(color.getRed(), color.getGreen(),
-	//					color.getBlue(), hsv_values);
+//				Color color = new Color(image.getRGB(x, y));
+//				Color.RGBtoHSB(color.getRed(), color.getGreen(),
+//					color.getBlue(), hsv_values);
 
 				// Hue is an angle in radians, so simple subtraction doesn't work
-				double dh = UtilAngle.dist(H.unsafe_get(x,y)/*
-					hsv_values[0]*/,h);
-				double ds = (S.unsafe_get(x,y)/*hsv_values[1]*/
-					-s)*adjustUnits;
-				double dv = V.unsafe_get(x, y)/*hsv_values[2]*/
-					*adjustValue;
+//				double dh = UtilAngle.dist(H.unsafe_get(x,y)/*
+//					hsv_values[0]*/,h);
+//				double ds = (S.unsafe_get(x,y)/*hsv_values[1]*/
+//					-s)*adjustUnits;
+//				double dv = V.unsafe_get(x, y)/*hsv_values[2]*/
+//					*adjustValue;
+
+				float[] color = new float[3];
+				int rgb = image.getRGB(x, y);
+				ColorHsv.rgbToHsv((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, color);
+
+				double dh = color[0] - h;
+				double ds = color[1] - s;
+				double dv = color[2];
 
 				// Test if hue, saturation, and value are in range
 				double dist2h = Math.abs(dh);
