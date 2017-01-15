@@ -34,26 +34,41 @@ import java.awt.event.MouseEvent;
 
 public class VisionTool {
 	
+	enum Mode {
+		DEMO_ZONE, // Demonstrate a preset
+		TEST_ZONE, // Calibrate on click
+		RELEASE, // Demo mode without gui
+	}
+
+	static final Mode MODE = Mode.TEST_ZONE;
+
 	static double splitFraction = 0.05;
 	static double minimumSideFraction = 0.1;
 	
-	static double temp_sat = 0.0;
-	static double temp_val = 0.0;
-	static double temp_hue = 0.0;
+	static double threshold_hue = 6.2262726;
+	static double threshold_sat = 0.973544967;
+	static double threshold_val = 189.0;
+
+	static final float HUE_MAX_DISTANCE = 0.4f;
+	static final float SAT_MAX_DISTANCE = 0.4f;
+	static final float VAL_MAX_DISTANCE = 0.4f;
 	
 	static BufferedImage webcam_img;
+
+	static long last_frame = 0;
+	static int frame_count = 0;
 	
-	public static void printClickedColor( ImagePanel guk ) {
-		guk.addMouseListener(new MouseAdapter() {
+	public static void printClickedColor( ImagePanel gui ) {
+		gui.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				float[] color = new float[3];
 				int rgb = webcam_img.getRGB(e.getX(),e.getY());
 				ColorHsv.rgbToHsv((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, color);
 				System.out.println("H = " + color[0]+" S = "+color[1]+" V = "+color[2]);
-				temp_hue = color[0];
-				temp_sat = color[1];
-				temp_val = color[2];
+				threshold_hue = color[0];
+				threshold_sat = color[1];
+				threshold_val = color[2];
 			}
 		});
  
@@ -73,14 +88,15 @@ public class VisionTool {
 		// used to select colors for each line
 		for( Contour c : contours ) {
 			// Only the external contours are relevant.
-			List<PointIndex_I32> vertexes = ShapeFittingOps.fitPolygon(c.external,true,
+			List<PointIndex_I32> vertexes =
+				ShapeFittingOps.fitPolygon(c.external,true,
 					splitFraction, minimumSideFraction,100);
 
-			// Target should have 6 sides
-			if(vertexes.size() < 6) {
+			// Target should have 4 sides
+			if(vertexes.size() < 3) {
 				continue;
 			}
-			
+
 			int xpasses = 0;
 			int ypasses = 0;
 			int minx = vertexes.get(0).x;
@@ -109,10 +125,9 @@ public class VisionTool {
 				}
 			}
 			if(xpasses > 2 || ypasses > 2) continue;
-			System.out.println("SIZE: " + vertexes.size() + " x:" + xpasses + " y:" + ypasses);
 			
-			g2.setColor(new Color(1.f, 0.f, 1.f));
-			VisualizeShapes.drawPolygon(vertexes,true,g2);
+//			g2.setColor(new Color(1.f, 0.f, 1.f));
+//			VisualizeShapes.drawPolygon(vertexes,true,g2);
 			g2.setColor(new Color(0.f, 0.f, 1.f));
 			VisualizeShapes.drawRectangle(new Rectangle2D_I32(minx, miny, maxx, maxy), g2);
 		}
@@ -154,11 +169,6 @@ public class VisionTool {
 		
 		// Convert into HSV
 		ColorHsv.rgbToHsv_F32(input,hsv);
-		
-		// Euclidean distance squared threshold for deciding which pixels are members of the selected set
-		float maxDist2h = 0.4f*0.4f;
-		float maxDist2s = 0.4f*0.4f;
-		float maxDist2v = 0.4f*0.4f;
 		 
 		// Extract hue and saturation bands which are independent of intensity
 		GrayF32 H = hsv.getBand(0);
@@ -179,12 +189,14 @@ public class VisionTool {
 				double ds = (S.unsafe_get(x,y)-s)*adjustUnits;
 				double dv = (V.unsafe_get(x, y)-v)*adjustValue;
  
-				// this distance measure is a bit naive, but good enough for to demonstrate the concept
-				double dist2h = dh*dh;
-				double dist2s = ds*ds;
-				double dist2v = dv*dv;
-				if((dist2h <= maxDist2h || Double.isNaN(dist2h))
-					&& dist2s <= maxDist2s && v >= 0.5)
+				// Test if hue, saturation, and value are in range
+				double dist2h = Math.abs(dh);
+				double dist2s = Math.abs(ds);
+				double dist2v = Math.abs(dv);
+				if((dist2h <= HUE_MAX_DISTANCE ||
+					Double.isNaN(dist2h)) &&
+					dist2s <= SAT_MAX_DISTANCE &&
+					dist2v <= VAL_MAX_DISTANCE)
 				{
 					output.setRGB(x,y,image.getRGB(x,y));
 				}
@@ -192,46 +204,66 @@ public class VisionTool {
 		}		
 
 		return output;
-		
+	}
+
+	public static void measure_fps() {
+		long this_frame = System.currentTimeMillis();
+		if((this_frame - last_frame) >= 1000) {
+			System.out.println("FPS: " + frame_count);
+			last_frame = this_frame;
+			frame_count = 1;
+		}
+		frame_count++;
 	}
 
 	public static void main(String[] args) {
-
 		// Open a webcam at a resolution close to 640x480
-		Webcam webcam = UtilWebcamCapture.openDefault(1280,760);
+		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
+//		Webcam webcam = UtilWebcamCapture.openDevice("1", 640, 480);
 
+		last_frame = System.currentTimeMillis();
 		// Create the panel used to display the image and feature tracks
-		ListDisplayPanel listpanel = new ListDisplayPanel();
-		ImagePanel gui = new ImagePanel();
-		ImagePanel guj = new ImagePanel();
-		ImagePanel guk = new ImagePanel();
-		gui.setPreferredSize(new Dimension(960, 720));
-		guj.setPreferredSize(new Dimension(960, 720));
-		guk.setPreferredSize(new Dimension(960, 720));
-		listpanel.addItem((JPanel)gui, "Raw Camera");
-		listpanel.addItem((JPanel)guj, "Processed");
-		listpanel.addItem((JPanel) guk, "Test_Zone");
-
-		ShowImages.showWindow(listpanel, "2846 Vision Tool ( 2017 )", true);
-		
-		
-		printClickedColor(gui);
-
-		printClickedColor(guk);
-
-			
-		while( true ) {
-			BufferedImage image = webcam.getImage();
-			webcam_img = image;
-//			GrayF32 gray = ConvertBufferedImage.convertFrom(image,(GrayF32)null);
-
-//			Graphics2D g2 = image.createGraphics();
-//			fitCannyEdges(g2, gray);
-//			fitCannyBinary(g2, gray);
-
-			gui.setBufferedImageSafe(image);
-			guj.setBufferedImageSafe(selectorHSV(image, 6.2262726, 0.973544967, 189.0));
-			guk.setBufferedImageSafe(selectorHSV(image, temp_hue, temp_sat, temp_val));
+		if(MODE == Mode.DEMO_ZONE || MODE == Mode.TEST_ZONE) {
+			ListDisplayPanel listpanel = new ListDisplayPanel();
+			ImagePanel gui = new ImagePanel();
+			ImagePanel guj = new ImagePanel();
+			gui.setPreferredSize(new Dimension(640, 480));
+			guj.setPreferredSize(new Dimension(640, 480));
+			listpanel.addItem((JPanel)gui, "Raw Camera");
+			listpanel.addItem((JPanel)guj, MODE == Mode.DEMO_ZONE ?
+				"Processed" : "Test_Zone");
+			ShowImages.showWindow(listpanel,
+				"2846 Vision Tool ( 2017 )", true);
+			if(MODE == Mode.TEST_ZONE) {
+				printClickedColor(gui);
+				printClickedColor(guj);
+				while( true ) {
+					webcam_img = webcam.getImage();
+					BufferedImage tmp = selectorHSV(
+						webcam_img, threshold_hue,
+						threshold_sat, threshold_val);
+					gui.setBufferedImageSafe(webcam_img);
+					guj.setBufferedImageSafe(tmp);
+					measure_fps();
+				}
+			}else{
+				while( true ) {
+					webcam_img = webcam.getImage();
+					BufferedImage set = selectorHSV(
+						webcam_img, threshold_hue,
+						threshold_sat, threshold_val);
+					gui.setBufferedImageSafe(webcam_img);
+					guj.setBufferedImageSafe(set);
+					measure_fps();
+				}
+			}
+		}else{
+			while( true ) {
+				webcam_img = webcam.getImage();
+				selectorHSV(webcam_img, threshold_hue,
+					threshold_sat, threshold_val);
+				measure_fps();
+			}
 		}
 	}
 }
