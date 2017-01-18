@@ -21,13 +21,19 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
 import georegression.metric.UtilAngle;
 import georegression.struct.shapes.Rectangle2D_I32;
+//import org.opencv;
 
 import com.github.sarxos.webcam.Webcam;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.awt.image.WritableRaster;
 import java.util.List;
 import javax.swing.JPanel;
+
+import org.opencv.core.*;
+import org.opencv.videoio.VideoCapture;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -55,6 +61,11 @@ public class VisionTool {
 	
 	static BufferedImage webcam_img;
 
+	static Mat frame;
+    static VideoCapture camera;
+
+	
+	
 	static long last_frame = 0;
 	static int frame_count = 0;
 	
@@ -215,12 +226,43 @@ public class VisionTool {
 		}
 		frame_count++;
 	}
+	public static BufferedImage opencamera(){
+		camera.read(frame);
 
+        BufferedImage image = MatToBufferedImage(frame);
+        return image;
+	}
+	
+	
+	public static BufferedImage MatToBufferedImage(Mat frame) {
+        //Mat() to BufferedImage
+        int type = 0;
+        if (frame.channels() == 1) {
+            type = BufferedImage.TYPE_BYTE_GRAY;
+        } else if (frame.channels() == 3) {
+            type = BufferedImage.TYPE_3BYTE_BGR;
+        }
+        BufferedImage image = new BufferedImage(frame.width(), frame.height(), type);
+        WritableRaster raster = image.getRaster();
+        DataBufferByte dataBuffer = (DataBufferByte) raster.getDataBuffer();
+        byte[] data = dataBuffer.getData();
+        frame.get(0, 0, data);
+
+        return image;
+    }
+	
+	
+	
 	public static void main(String[] args) {
 		// Open a webcam at a resolution close to 640x480
-		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
+		//Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
 //		Webcam webcam = UtilWebcamCapture.openDevice("1", 640, 480);
 
+		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+		
+		frame = new Mat();
+		camera = new VideoCapture(0);
+		
 		last_frame = System.currentTimeMillis();
 		// Create the panel used to display the image and feature tracks
 		if(MODE == Mode.DEMO_ZONE || MODE == Mode.TEST_ZONE) {
@@ -238,7 +280,8 @@ public class VisionTool {
 				printClickedColor(gui);
 				printClickedColor(guj);
 				while( true ) {
-					webcam_img = webcam.getImage();
+//					webcam_img = webcam.getImage();
+					webcam_img = opencamera();
 					BufferedImage tmp = selectorHSV(
 						webcam_img, threshold_hue,
 						threshold_sat, threshold_val);
@@ -248,7 +291,8 @@ public class VisionTool {
 				}
 			}else{
 				while( true ) {
-					webcam_img = webcam.getImage();
+//					webcam_img = webcam.getImage();
+					webcam_img = opencamera();
 					BufferedImage set = selectorHSV(
 						webcam_img, threshold_hue,
 						threshold_sat, threshold_val);
@@ -259,7 +303,8 @@ public class VisionTool {
 			}
 		}else{
 			while( true ) {
-				webcam_img = webcam.getImage();
+//				webcam_img = webcam.getImage();
+				webcam_img = opencamera();
 				selectorHSV(webcam_img, threshold_hue,
 					threshold_sat, threshold_val);
 				measure_fps();
