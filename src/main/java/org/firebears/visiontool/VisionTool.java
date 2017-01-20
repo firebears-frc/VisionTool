@@ -32,8 +32,8 @@ import java.awt.image.WritableRaster;
 import java.util.List;
 import javax.swing.JPanel;
 
-import org.opencv.core.*;
-import org.opencv.videoio.VideoCapture;
+//import org.opencv.core.*;
+//import org.opencv.videoio.VideoCapture;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -61,8 +61,8 @@ public class VisionTool {
 	
 	static BufferedImage webcam_img;
 
-	static Mat frame;
-    static VideoCapture camera;
+//	static Mat frame;
+//    static VideoCapture camera;
 
 	
 	
@@ -85,7 +85,8 @@ public class VisionTool {
  
 	}
 	
-	public static void fitCannyBinary( Graphics2D g2, GrayF32 input ) {
+	public static void fitCannyBinary(GrayF32 input) {
+		Graphics2D g2 = webcam_img.createGraphics();
 		GrayU8 binary = new GrayU8(input.width,input.height);
 
 		// Finds edges inside the image
@@ -137,40 +138,8 @@ public class VisionTool {
 			}
 			if(xpasses > 2 || ypasses > 2) continue;
 			
-//			g2.setColor(new Color(1.f, 0.f, 1.f));
-//			VisualizeShapes.drawPolygon(vertexes,true,g2);
 			g2.setColor(new Color(0.f, 0.f, 1.f));
 			VisualizeShapes.drawRectangle(new Rectangle2D_I32(minx, miny, maxx, maxy), g2);
-		}
-	}
-	
-	/**
-	 * Fits a sequence of line-segments into a sequence of points found using the Canny edge detector.  In this case
-	 * the points are not connected in a loop. The canny detector produces a more complex tree and the fitted
-	 * points can be a bit noisy compared to the others.
-	 * @param g22 
-	 */
-	public static void fitCannyEdges( Graphics2D g2, GrayF32 input ) {
-
-		// Finds edges inside the image
-		CannyEdge<GrayF32,GrayF32> canny =
-				FactoryEdgeDetectors.canny(2, true, true, GrayF32.class, GrayF32.class);
-
-		canny.process(input,0.1f,0.3f,null);
-		List<EdgeContour> contours = canny.getContours();
-
-		g2.setStroke(new BasicStroke(2));
-
-		for( EdgeContour e : contours ) {
-
-			for(EdgeSegment s : e.segments ) {
-				// fit line segments to the point sequence.  Note that loop is false
-				List<PointIndex_I32> vertexes = ShapeFittingOps.fitPolygon(s.points,false,
-						splitFraction, minimumSideFraction,100);
-
-				g2.setColor(new Color(1.f, 1.f, 0.f));
-				VisualizeShapes.drawPolygon(vertexes, false, g2);
-			}
 		}
 	}
 	
@@ -226,7 +195,7 @@ public class VisionTool {
 		}
 		frame_count++;
 	}
-	public static BufferedImage opencamera(){
+/*	public static BufferedImage opencamera(){
 		camera.read(frame);
 
         BufferedImage image = MatToBufferedImage(frame);
@@ -250,18 +219,18 @@ public class VisionTool {
 
         return image;
     }
-	
+*/	
 	
 	
 	public static void main(String[] args) {
 		// Open a webcam at a resolution close to 640x480
-		//Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
+		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
 //		Webcam webcam = UtilWebcamCapture.openDevice("1", 640, 480);
 
-		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+//		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		
-		frame = new Mat();
-		camera = new VideoCapture(0);
+//		frame = new Mat();
+//		camera = new VideoCapture(0);
 		
 		last_frame = System.currentTimeMillis();
 		// Create the panel used to display the image and feature tracks
@@ -280,22 +249,30 @@ public class VisionTool {
 				printClickedColor(gui);
 				printClickedColor(guj);
 				while( true ) {
-//					webcam_img = webcam.getImage();
-					webcam_img = opencamera();
+					webcam_img = webcam.getImage();
+//					webcam_img = opencamera();
 					BufferedImage tmp = selectorHSV(
 						webcam_img, threshold_hue,
 						threshold_sat, threshold_val);
+					GrayF32 gray =
+						 ConvertBufferedImage
+						.convertFrom(tmp,(GrayF32)null);
+					fitCannyBinary(gray);
 					gui.setBufferedImageSafe(webcam_img);
 					guj.setBufferedImageSafe(tmp);
 					measure_fps();
 				}
 			}else{
 				while( true ) {
-//					webcam_img = webcam.getImage();
-					webcam_img = opencamera();
+					webcam_img = webcam.getImage();
+//					webcam_img = opencamera();
 					BufferedImage set = selectorHSV(
 						webcam_img, threshold_hue,
 						threshold_sat, threshold_val);
+					GrayF32 gray =
+						 ConvertBufferedImage
+						.convertFrom(set,(GrayF32)null);
+					fitCannyBinary(gray);
 					gui.setBufferedImageSafe(webcam_img);
 					guj.setBufferedImageSafe(set);
 					measure_fps();
@@ -303,8 +280,8 @@ public class VisionTool {
 			}
 		}else{
 			while( true ) {
-//				webcam_img = webcam.getImage();
-				webcam_img = opencamera();
+				webcam_img = webcam.getImage();
+//				webcam_img = opencamera();
 				selectorHSV(webcam_img, threshold_hue,
 					threshold_sat, threshold_val);
 				measure_fps();
