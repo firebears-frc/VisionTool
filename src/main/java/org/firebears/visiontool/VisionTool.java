@@ -55,12 +55,12 @@ public class VisionTool {
 	static double threshold_sat = 0.973544967;
 	static double threshold_val = 189.0;
 
-	static final float HUE_MAX_DISTANCE = 0.4f;
+	static final float HUE_MAX_DISTANCE = 0.1f;
 	static final float SAT_MAX_DISTANCE = 0.4f;
-	static final float VAL_MAX_DISTANCE = 0.4f;
+	static final float VAL_MAX_DISTANCE = 0.1f;
 	
 	static BufferedImage webcam_img;
-
+	static final Color WHITE = new Color(1.0f,1.0f,1.0f);
 //	static Mat frame;
 //    static VideoCapture camera;
 
@@ -105,12 +105,12 @@ public class VisionTool {
 					splitFraction, minimumSideFraction,100);
 
 			// Target should have 4 sides
-			if(vertexes.size() < 3) {
+			if(vertexes.size() < 1) {
 				continue;
 			}
 
-			int xpasses = 0;
-			int ypasses = 0;
+//			int xpasses = 0;
+	//		int ypasses = 0;
 			int minx = vertexes.get(0).x;
 			int miny = vertexes.get(0).y;
 			int maxx = vertexes.get(0).x;
@@ -121,22 +121,22 @@ public class VisionTool {
 				
 				if(x > maxx) {
 					maxx = x;
-					xpasses ++;
+		//			xpasses ++;
 				}
 				if(y > maxy) {
 					maxy = y;
-					ypasses ++;
+		//			ypasses ++;
 				}
 				if(x < minx) {
 					minx = x;
-					xpasses ++;
+	//				xpasses ++;
 				}
 				if(y < miny) {
 					miny = y;
-					ypasses ++;
+	//				ypasses ++;
 				}
 			}
-			if(xpasses > 2 || ypasses > 2) continue;
+//			if(xpasses > 2 || ypasses > 2) continue;
 			
 			g2.setColor(new Color(0.f, 0.f, 1.f));
 			VisualizeShapes.drawRectangle(new Rectangle2D_I32(minx, miny, maxx, maxy), g2);
@@ -224,8 +224,8 @@ public class VisionTool {
 	
 	public static void main(String[] args) {
 		// Open a webcam at a resolution close to 640x480
-		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
-//		Webcam webcam = UtilWebcamCapture.openDevice("1", 640, 480);
+//		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
+		Webcam webcam = UtilWebcamCapture.openDevice("1", 640, 480);
 
 //		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		
