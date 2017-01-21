@@ -178,6 +178,32 @@ public class VisionTool {
 		g2.setColor(new Color(0.f, 0.f, 1.f));
 		VisualizeShapes.drawRectangle(new Rectangle2D_I32(xmin1, ymin1, xmax1, ymax1), g2);
 		VisualizeShapes.drawRectangle(new Rectangle2D_I32(xmin2, ymin2, xmax2, ymax2), g2);
+		int distance = Math.abs((xmax1 + xmin1) - (xmax2 + xmin2)) / 2;
+		float angleoff;
+		if(distance != 0 && size1 != 0 && size2 != 0) {
+			float angle;
+			int pixels = ((xmax1 + xmax2) / 2) - 320;
+
+			distance = 7058 / distance;
+
+			if(xmax1 > xmax2) {
+				int left = (xmax1 - xmin1);
+				int right = (xmax2 - xmin2);
+				angle = (size1 - size2) / 100.0f; //left - right;
+//				pixels = Math.abs((xmax1 + xmax2) / 2);
+			} else {
+				int right = (xmax1 - xmin1);
+				int left = (xmax2 - xmin2);
+				angle = (size2 - size1) / 100.0f; //left - right;
+//				pixels = -Math.abs((xmax1 - xmax2) / 2);
+			}
+			angleoff = (float)(Math.atan(((double)pixels) * 0.00132)
+				* 180.0f / Math.PI);
+			System.out.println("Angle " + angleoff + ", Distance: "
+				+ distance + " inches, Tilt: " + angle);
+		}else {
+			System.out.println("No confidence");
+		}
 	}
 	
 	public static BufferedImage selectorHSV( BufferedImage image, double h, double s, double v ) {
@@ -260,8 +286,8 @@ public class VisionTool {
 	
 	public static void main(String[] args) {
 		// Open a webcam at a resolution close to 640x480
-		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
-//		Webcam webcam = UtilWebcamCapture.openDevice("0", 640, 480);
+//		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
+		Webcam webcam = UtilWebcamCapture.openDevice("1", 640, 480);
 
 //		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		
