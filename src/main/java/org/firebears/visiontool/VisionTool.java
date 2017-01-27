@@ -21,7 +21,6 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
 import georegression.metric.UtilAngle;
 import georegression.struct.shapes.Rectangle2D_I32;
-//import org.opencv;
 
 import com.github.sarxos.webcam.Webcam;
 
@@ -32,13 +31,16 @@ import java.awt.image.WritableRaster;
 import java.util.List;
 import javax.swing.JPanel;
 
+/** OpenCV camera start **/
+//import org.opencv;
 //import org.opencv.core.*;
 //import org.opencv.videoio.VideoCapture;
+/** OpenCV camera end **/
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class VisionTool {
+public class VisionTool implements Runnable {
 	
 	enum Mode {
 		DEMO_ZONE, // Demonstrate a preset
@@ -46,37 +48,47 @@ public class VisionTool {
 		RELEASE, // Demo mode without gui
 	}
 
-	static final Mode MODE = Mode.TEST_ZONE;
+	double splitFraction = 0.05;
+	double minimumSideFraction = 0.1;
 
-	static double splitFraction = 0.05;
-	static double minimumSideFraction = 0.1;
-	
+	final float HUE_MAX_DISTANCE = 0.2f;
+	final float SAT_MAX_DISTANCE = 0.4f;
+	final float VAL_MINIMUM = 0.1f;
+
+	final int MINSIZE = 100;	
+
+	final Color WHITE = new Color(1.0f,1.0f,1.0f);
+
+/** OpenCV camera start **/
+//	static Mat frame;
+//    static VideoCapture camera;
+/** OpenCV camera end **/
+
+	// Static Variables
+	static Webcam webcam = null;
+
+	static ListDisplayPanel listpanel = null;
+	static ImagePanel gui = null;
+	static ImagePanel guj = null;
+
 	static double threshold_hue = 2.6;
 	static double threshold_sat = 0.8;
 	static double threshold_val = 158.0;
 
-	static final float HUE_MAX_DISTANCE = 0.2f;
-	static final float SAT_MAX_DISTANCE = 0.4f;
-	static final float VAL_MINIMUM = 0.1f;
+	// Setup
+	final static String CAMERA = "0";
+	final static Mode MODE = Mode.TEST_ZONE;
 
-	static final int MINSIZE = 100;	
-
-	static BufferedImage webcam_img;
-	static final Color WHITE = new Color(1.0f,1.0f,1.0f);
-//	static Mat frame;
-//    static VideoCapture camera;
-
-	
-	
-	static long last_frame = 0;
-	static int frame_count = 0;
-	
-	public static void printClickedColor( ImagePanel gui ) {
+	/**
+	 * Initialize color picker for real-time calibration in HSV for a
+	 * specific tab.
+	**/
+	public static void printClickedColor(ImagePanel gui, BufferedImage from) {
 		gui.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				float[] color = new float[3];
-				int rgb = webcam_img.getRGB(e.getX(),e.getY());
+				int rgb = from.getRGB(e.getX(),e.getY());
 				ColorHsv.rgbToHsv((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, color);
 				System.out.println("H = " + color[0]+" S = "+color[1]+" V = "+color[2]);
 				threshold_hue = color[0];
@@ -86,8 +98,12 @@ public class VisionTool {
 		});
  
 	}
-	
-	public static void fitCannyBinary(GrayF32 input) {
+
+	/**
+	 * Find the position of the target if it exists otherwise say
+	 * that it doesn't.
+	**/
+	public void fitCannyBinary(GrayF32 input, BufferedImage webcam_img) {
 		Graphics2D g2 = webcam_img.createGraphics();
 		GrayU8 binary = new GrayU8(input.width,input.height);
 
@@ -206,7 +222,10 @@ public class VisionTool {
 		}
 	}
 	
-	public static BufferedImage selectorHSV( BufferedImage image, double h, double s, double v ) {
+	/**
+	 * Filter out colors depending on the HSV threshold.
+	**/
+	public BufferedImage selectorHSV( BufferedImage image, double h, double s, double v ) {
 		Planar<GrayF32> input = ConvertBufferedImage.convertFromMulti(image,null,true,GrayF32.class);
 		Planar<GrayF32> hsv = input.createSameShape();
 		
@@ -248,15 +267,7 @@ public class VisionTool {
 		return output;
 	}
 
-	public static void measure_fps() {
-		long this_frame = System.currentTimeMillis();
-		if((this_frame - last_frame) >= 1000) {
-			System.out.println("FPS: " + frame_count);
-			last_frame = this_frame;
-			frame_count = 1;
-		}
-		frame_count++;
-	}
+/** OpenCV camera start **/
 /*	public static BufferedImage opencamera(){
 		camera.read(frame);
 
@@ -281,73 +292,134 @@ public class VisionTool {
 
         return image;
     }
-*/	
-	
-	
+*/
+/** OpenCV camera end **/
+
+	/**
+	 * Open up the window with 2 tabs.
+	**/
+	public static void launch_window() {
+		listpanel = new ListDisplayPanel();
+		gui = new ImagePanel();
+		guj = new ImagePanel();
+		
+		gui.setPreferredSize(new Dimension(640, 480));
+		guj.setPreferredSize(new Dimension(640, 480));
+		listpanel.addItem((JPanel)gui, "Raw Camera");
+		listpanel.addItem((JPanel)guj, MODE == Mode.DEMO_ZONE ?
+			"Processed" : "Test_Zone");
+		ShowImages.showWindow(listpanel,
+			"2846 Vision Tool ( 2017 )", true);
+	}
+
+	/**
+	 * Initialize color picker for real-time calibration in HSV for both
+	 * tabs.
+	**/
+	public static void print_clicked_colors(BufferedImage from) {
+		synchronized (gui) {
+			printClickedColor(gui, from);
+			printClickedColor(guj, from);
+		}
+	}
+
+	/**
+	 * Update the contents of the window.
+	**/
+	public static void set_window_graphics(BufferedImage raw, BufferedImage processed) {
+		synchronized (gui) {
+			gui.setBufferedImageSafe(raw);
+			guj.setBufferedImageSafe(processed);
+		}
+	}
+
+	/**
+	 * Retrieve the data from the webcam.
+	**/
+	public static BufferedImage getImage() {
+		synchronized (webcam) {
+			return webcam.getImage();
+		}
+	}
+
+	/**
+	 * This is the start of the program.  It should start 4 threads after
+	 * initializing shared data.
+	**/
 	public static void main(String[] args) {
 		// Open a webcam at a resolution close to 640x480
-//		Webcam webcam = UtilWebcamCapture.openDefault(640, 480);
-		Webcam webcam = UtilWebcamCapture.openDevice("1", 640, 480);
+		webcam = UtilWebcamCapture.openDevice(CAMERA, 640, 480);
+		if(MODE == Mode.DEMO_ZONE || MODE == Mode.TEST_ZONE) {
+			launch_window();
+		}
+		FrameCounter.last_frame = System.currentTimeMillis();
+		VisionTool vision_tool = new VisionTool();
+		for(int i = 0; i < 4; i++) {
+			Thread vision_tool_thread = new Thread(vision_tool);
+			vision_tool_thread.start();
+		}
+	}
 
+	/**
+	 * Method is executed for each thread.  Contains main loop.
+	**/
+	public void run() {
+		BufferedImage webcam_img = getImage();
+
+/** OpenCV camera start **/
 //		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		
 //		frame = new Mat();
 //		camera = new VideoCapture(0);
+/** OpenCV camera end **/
 		
-		last_frame = System.currentTimeMillis();
 		// Create the panel used to display the image and feature tracks
 		if(MODE == Mode.DEMO_ZONE || MODE == Mode.TEST_ZONE) {
-			ListDisplayPanel listpanel = new ListDisplayPanel();
-			ImagePanel gui = new ImagePanel();
-			ImagePanel guj = new ImagePanel();
-			gui.setPreferredSize(new Dimension(640, 480));
-			guj.setPreferredSize(new Dimension(640, 480));
-			listpanel.addItem((JPanel)gui, "Raw Camera");
-			listpanel.addItem((JPanel)guj, MODE == Mode.DEMO_ZONE ?
-				"Processed" : "Test_Zone");
-			ShowImages.showWindow(listpanel,
-				"2846 Vision Tool ( 2017 )", true);
 			if(MODE == Mode.TEST_ZONE) {
-				printClickedColor(gui);
-				printClickedColor(guj);
-				while( true ) {
-					webcam_img = webcam.getImage();
-//					webcam_img = opencamera();
-					BufferedImage tmp = selectorHSV(
-						webcam_img, threshold_hue,
-						threshold_sat, threshold_val);
-					GrayF32 gray =
-						 ConvertBufferedImage
-						.convertFrom(tmp,(GrayF32)null);
-					fitCannyBinary(gray);
-					gui.setBufferedImageSafe(webcam_img);
-					guj.setBufferedImageSafe(tmp);
-					measure_fps();
-				}
-			}else{
-				while( true ) {
-					webcam_img = webcam.getImage();
-//					webcam_img = opencamera();
-					BufferedImage set = selectorHSV(
-						webcam_img, threshold_hue,
-						threshold_sat, threshold_val);
-					GrayF32 gray =
-						 ConvertBufferedImage
-						.convertFrom(set,(GrayF32)null);
-					fitCannyBinary(gray);
-					gui.setBufferedImageSafe(webcam_img);
-					guj.setBufferedImageSafe(set);
-					measure_fps();
-				}
+				print_clicked_colors(webcam_img);
+			}
+			while( true ) {
+				webcam_img = getImage();
+/** OpenCV camera start **/
+//				webcam_img = opencamera();
+/** OpenCV camera end **/
+				BufferedImage tmp = selectorHSV(webcam_img,
+					threshold_hue, threshold_sat,
+					threshold_val);
+				GrayF32 gray = ConvertBufferedImage.convertFrom(
+					tmp, (GrayF32) null);
+				fitCannyBinary(gray, webcam_img);
+				set_window_graphics(webcam_img, tmp);
+				FrameCounter.measure_fps();
 			}
 		}else{
 			while( true ) {
-				webcam_img = webcam.getImage();
+				webcam_img = getImage();
+/** OpenCV camera start **/
 //				webcam_img = opencamera();
+/** OpenCV camera end **/
 				selectorHSV(webcam_img, threshold_hue,
 					threshold_sat, threshold_val);
-				measure_fps();
+				FrameCounter.measure_fps();
 			}
+		}
+	}
+
+	/**
+	 * A private class to count frames per second.
+	**/
+	private static class FrameCounter {
+		public static long last_frame = 0;
+		private static int frame_count = 0;
+
+		public static synchronized void measure_fps() {
+			long this_frame = System.currentTimeMillis();
+			if((this_frame - last_frame) >= 1000) {
+				System.out.println("FPS: " + frame_count);
+				last_frame = this_frame;
+				frame_count = 0;
+			}
+			frame_count++;
 		}
 	}
 }
