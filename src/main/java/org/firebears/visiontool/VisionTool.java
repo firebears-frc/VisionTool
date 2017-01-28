@@ -158,10 +158,8 @@ public class VisionTool implements Runnable {
 	/**
 	 * Retrieve the data from the webcam.
 	**/
-	public static BufferedImage getImage() {
-		synchronized (webcam) {
-			return webcam.getImage();
-		}
+	private static BufferedImage getImage() {
+		return webcam.getImage();
 	}
 
 	/**
@@ -193,6 +191,7 @@ public class VisionTool implements Runnable {
 			while(System.currentTimeMillis() < time + 150);
 			time += 150; // System.currentTimeMillis();
 
+			webcam = getImage();
 			VisionProcessTask t = new VisionProcessTask(webcam);
 			vision_tool.forkJoinPool.execute(t);
 

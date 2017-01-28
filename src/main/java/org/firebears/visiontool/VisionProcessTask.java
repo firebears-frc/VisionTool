@@ -43,7 +43,6 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 	VisionResult result;
 
 	VisionProcessTask(BufferedImage src_param) {
-		src_param = VisionTool.getImage();
 		src = src_param;
 		result = new VisionResult();
 	}
