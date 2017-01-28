@@ -5,39 +5,30 @@ import java.net.*;
 import java.nio.*;
 import java.nio.channels.DatagramChannel;
 
-public class UDPServer implements Runnable {
+public class UDPServer {
 
 	final SocketAddress address;
-	public float angle;
-	public float distance;
-	public float tilt;
-	public int confidence;
 
-	public UDPServer(String host, int port/*, float angle, float distance,
-		float tilt, int confidence*/)
-	{
+	public UDPServer(String host, int port) {
 		address = new InetSocketAddress(host, port);
-//		m_angle = angle;
-//		m_distance = distance;
-//		m_tilt = tilt;
-//		m_confidence = confidence;
 	}
 
-	public void run() {
+	public void send(VisionResult result) {
 		try ( DatagramChannel channel = DatagramChannel.open()) {
 			ByteBuffer buffer = ByteBuffer.allocate(512);
 			buffer.clear();
-			buffer.putFloat(angle);
-			buffer.putFloat(distance);
-			buffer.putFloat(tilt);
-			buffer.putInt(confidence);
+			buffer.putFloat(result.angle);
+			buffer.putFloat(result.distance);
+			buffer.putFloat(result.tilt);
+			buffer.putInt(result.confidence);
 			buffer.flip();
 			channel.send(buffer, address);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
-		System.out.println("Sent " + angle + " " + distance + " " +
-			tilt + " " + confidence);
+		System.out.println("Sent: Angle " + result.angle +
+			", Distance: " + result.distance + " inches, Tilt: " +
+			result.tilt + " Confidence: " + result.confidence);
 	}
 }
