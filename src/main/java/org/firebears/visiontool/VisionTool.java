@@ -192,7 +192,6 @@ public class VisionTool implements Runnable {
 		while(true) {
 			VisionProcessTask t;
 
-			webcam = getImage();
 			t = new VisionProcessTask(webcam);
 
 			vision_tool.forkJoinPool.execute(t);

@@ -249,6 +249,8 @@ public class VisionProcessTask extends ForkJoinTask<VisionResult> {
 //		camera = new VideoCapture(0);
 /** OpenCV camera end **/
 	
+		src = VisionTool.getImage();
+
 		// Create the panel used to display the image and feature tracks
 		if(VisionTool.MODE == VisionTool.Mode.DEMO_ZONE ||
 			VisionTool.MODE == VisionTool.Mode.TEST_ZONE)
