@@ -25,6 +25,7 @@ import georegression.struct.shapes.Rectangle2D_I32;
 import com.github.sarxos.webcam.Webcam;
 
 import java.awt.*;
+import java.awt.Color.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.WritableRaster;
@@ -40,8 +41,12 @@ import javax.swing.JPanel;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+import org.firebears.visiontool.*;
+
 public class VisionTool implements Runnable {
 	
+	static UDPServer server;
+
 	enum Mode {
 		DEMO_ZONE, // Demonstrate a preset
 		TEST_ZONE, // Calibrate on click
@@ -58,6 +63,8 @@ public class VisionTool implements Runnable {
 	final int MINSIZE = 100;	
 
 	final Color WHITE = new Color(1.0f,1.0f,1.0f);
+
+	float hsv_values[] = new float[3];
 
 /** OpenCV camera start **/
 //	static Mat frame;
@@ -77,7 +84,7 @@ public class VisionTool implements Runnable {
 
 	// Setup
 	final static String CAMERA = "0";
-	final static Mode MODE = Mode.RELEASE;
+	final static Mode MODE = Mode.TEST_ZONE;
 
 	/**
 	 * Initialize color picker for real-time calibration in HSV for a
@@ -215,9 +222,28 @@ public class VisionTool implements Runnable {
 			}
 			angleoff = (float)(Math.atan(((double)pixels) * 0.00132)
 				* 180.0f / Math.PI);
+
+			server.angle = angleoff;
+			server.distance = distance;
+			server.tilt = angle;
+			server.confidence = 1;
+			synchronized(server) {
+				Thread thread = new Thread(server);
+				thread.start();
+			}
+
 			System.out.println("Angle " + angleoff + ", Distance: "
 				+ distance + " inches, Tilt: " + angle);
 		}else {
+			server.angle = 0.0f;
+			server.distance = 0.0f;
+			server.tilt = 0.0f;
+			server.confidence = 0;
+			synchronized(server) {
+				Thread thread = new Thread(server);
+				thread.start();
+			}
+
 			System.out.println("No confidence");
 		}
 	}
@@ -243,13 +269,20 @@ public class VisionTool implements Runnable {
 		double adjustValue = 1.0 / 255.0;
 		 
 		// step through each pixel and mark how close it is to the selected color
-		BufferedImage output = new BufferedImage(input.width,input.height,BufferedImage.TYPE_INT_RGB);
-		for( int y = 0; y < hsv.height; y++ ) {
-			for( int x = 0; x < hsv.width; x++ ) {
+		BufferedImage output = new BufferedImage(image.getWidth(),image.getHeight(),BufferedImage.TYPE_INT_RGB);
+		for( int y = 0; y < image.getHeight(); y++ ) {
+			for( int x = 0; x < image.getWidth(); x++ ) {
+//				Color color = new Color(image.getRGB(x, y));
+//				Color.RGBtoHSB(color.getRed(), color.getGreen(),
+//					color.getBlue(), hsv_values);
+
 				// Hue is an angle in radians, so simple subtraction doesn't work
-				double dh = UtilAngle.dist(H.unsafe_get(x,y),h);
-				double ds = (S.unsafe_get(x,y)-s)*adjustUnits;
-				double dv = V.unsafe_get(x, y)*adjustValue;
+				double dh = UtilAngle.dist(H.unsafe_get(x,y)/*
+					hsv_values[0]*/,h);
+				double ds = (S.unsafe_get(x,y)/*hsv_values[1]*/
+					-s)*adjustUnits;
+				double dv = V.unsafe_get(x, y)/*hsv_values[2]*/
+					*adjustValue;
  
 				// Test if hue, saturation, and value are in range
 				double dist2h = Math.abs(dh);
@@ -353,6 +386,7 @@ public class VisionTool implements Runnable {
 			launch_window();
 		}
 		FrameCounter.last_frame = System.currentTimeMillis();
+		server = new UDPServer("10.28.46.2", 5810);
 		VisionTool vision_tool = new VisionTool();
 		for(int i = 0; i < 8; i++) {
 			Thread vision_tool_thread = new Thread(vision_tool);
