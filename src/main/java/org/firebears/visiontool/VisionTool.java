@@ -188,8 +188,8 @@ public class VisionTool implements Runnable {
 		}
 		
 		while(true) {
-			while(System.currentTimeMillis() < time + 150);
-			time += 150; // System.currentTimeMillis();
+			while(System.currentTimeMillis() < time + 100);
+			time += 100; // System.currentTimeMillis();
 
 			webcam = getImage();
 			VisionProcessTask t = new VisionProcessTask(webcam);
