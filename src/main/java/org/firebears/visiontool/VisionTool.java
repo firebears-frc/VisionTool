@@ -51,7 +51,7 @@ public class VisionTool implements Runnable {
 	double splitFraction = 0.05;
 	double minimumSideFraction = 0.1;
 
-	final float HUE_MAX_DISTANCE = 0.2f;
+	final float HUE_MAX_DISTANCE = 0.8f;
 	final float SAT_MAX_DISTANCE = 0.4f;
 	final float VAL_MINIMUM = 0.1f;
 
