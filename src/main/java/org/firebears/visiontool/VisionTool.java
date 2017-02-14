@@ -42,11 +42,15 @@ import java.awt.event.MouseEvent;
 
 public class VisionTool implements Runnable {
 	
+	private static final int NUMBER_OF_THREADS = 4;
+	
 	enum Mode {
 		DEMO_ZONE, // Demonstrate a preset
 		TEST_ZONE, // Calibrate on click
 		RELEASE, // Demo mode without gui
 	}
+	
+	static UDPServer server;
 
 	double splitFraction = 0.05;
 	double minimumSideFraction = 0.1;
@@ -58,6 +62,8 @@ public class VisionTool implements Runnable {
 	final int MINSIZE = 100;	
 
 	final Color WHITE = new Color(1.0f,1.0f,1.0f);
+	
+	VisionResult visionResult = new VisionResult();
 
 /** OpenCV camera start **/
 //	static Mat frame;
@@ -217,6 +223,13 @@ public class VisionTool implements Runnable {
 				* 180.0f / Math.PI);
 			System.out.println("Angle " + angleoff + ", Distance: "
 				+ distance + " inches, Tilt: " + angle);
+			visionResult.angle = angleoff;
+			visionResult.distance = distance;
+			visionResult.tilt = angle;
+			visionResult.confidence = 1;
+			synchronized(server) {
+				server.send(visionResult);
+			}
 		}else {
 			System.out.println("No confidence");
 		}
@@ -352,9 +365,10 @@ public class VisionTool implements Runnable {
 		if(MODE == Mode.DEMO_ZONE || MODE == Mode.TEST_ZONE) {
 			launch_window();
 		}
+		server = new UDPServer("10.28.46.2", 5810);
 		FrameCounter.last_frame = System.currentTimeMillis();
 		VisionTool vision_tool = new VisionTool();
-		for(int i = 0; i < 4; i++) {
+		for(int i = 0; i < NUMBER_OF_THREADS; i++) {
 			Thread vision_tool_thread = new Thread(vision_tool);
 			vision_tool_thread.start();
 		}
