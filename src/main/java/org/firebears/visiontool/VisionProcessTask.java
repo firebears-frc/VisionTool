@@ -29,7 +29,7 @@ public class VisionProcessTask /* extends ForkJoinTask<VisionResult> */ {
 
 	static final double splitFraction = 0.05;
 	static final double minimumSideFraction = 0.1;
-	static final int MINSIZE = 100;	
+	static final int MINSIZE = (int)(VisionTool.ratio * 100.0);	
 
 	static final float HUE_MAX_DISTANCE = 0.8f;
 	static final float SAT_MAX_DISTANCE = 0.4f;
@@ -146,28 +146,28 @@ public class VisionProcessTask /* extends ForkJoinTask<VisionResult> */ {
 		float angleoff;
 		if(distance != 0 && size1 != 0 && size2 != 0) {
 			float angle;
-			int pixels = ((xmax1 + xmax2) / 2) - 320;
+			int pixels = ((xmax1 + xmax2) / 2) - (VisionTool.dim_width / 2);
 
-			distance = 7058 / distance;
+			distance = (int)(VisionTool.width_ratio * 7058 / distance);
 
 			if(xmax1 > xmax2) {
 				int left = (xmax1 - xmin1);
 				int right = (xmax2 - xmin2);
-				angle = (size1 - size2) / 100.0f; //left - right;
+				angle = (size1 - size2) / MINSIZE; //left - right;
 	//				pixels = Math.abs((xmax1 + xmax2) / 2);
 			} else {
 				int right = (xmax1 - xmin1);
 				int left = (xmax2 - xmin2);
-				angle = (size2 - size1) / 100.0f; //left - right;
+				angle = (size2 - size1) / MINSIZE; //left - right;
 	//				pixels = -Math.abs((xmax1 - xmax2) / 2);
 			}
-			angleoff = (float)(Math.atan(((double)pixels) * 0.00132)
+			angleoff = (float)(Math.atan(((double)pixels) * 0.00132 / VisionTool.width_ratio)
 				* 180.0f / Math.PI);
 
 			result.angle = angleoff;
 			result.distance = distance;
 			result.tilt = angle;
-			if(Math.abs(result.tilt) < 20.0) {
+			if(Math.abs(result.tilt) < 20.0 * VisionTool.ratio) {
 				result.confidence = 1;
 			}else{
 				result.confidence = 0;

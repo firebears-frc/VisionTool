@@ -69,6 +69,14 @@ public class VisionTool implements Runnable {
 
 	static long time = 0;
 
+	static BufferedImage webcamImage;
+
+	// Webcam dimensions.
+	public final static int dim_width = 320;
+	public final static int dim_height = 240;
+	public final static double ratio = (VisionTool.dim_width * VisionTool.dim_height) / (640.0*480.0);
+	public final static double width_ratio = dim_width / 640.0;
+
 	/**
 	 * Initialize color picker for real-time calibration in HSV for a
 	 * specific tab.
@@ -125,8 +133,8 @@ public class VisionTool implements Runnable {
 		gui = new ImagePanel();
 		guj = new ImagePanel();
 		
-		gui.setPreferredSize(new Dimension(640, 480));
-		guj.setPreferredSize(new Dimension(640, 480));
+		gui.setPreferredSize(new Dimension(dim_width, dim_height));
+		guj.setPreferredSize(new Dimension(dim_width, dim_height));
 		listpanel.addItem((JPanel)gui, "Raw Camera");
 		listpanel.addItem((JPanel)guj, MODE == Mode.DEMO_ZONE ?
 			"Processed" : "Test_Zone");
@@ -156,21 +164,12 @@ public class VisionTool implements Runnable {
 	}
 
 	/**
-	 * Retrieve the data from the webcam.
-	**/
-	private static BufferedImage getImage() {
-		return webcam.getImage();
-	}
-
-	static BufferedImage webcamImage;
-
-	/**
 	 * This is the start of the program.  It should start 4 threads after
 	 * initializing shared data.
 	**/
 	public static void main(String[] args) {
-		// Open a webcam at a resolution close to 640x480
-		webcam = UtilWebcamCapture.openDevice(CAMERA, 640, 480);
+		// Open a webcam at a resolution close to specified dimensions
+		webcam = UtilWebcamCapture.openDevice(CAMERA, dim_width, dim_height);
 		if(MODE == Mode.DEMO_ZONE || MODE == Mode.TEST_ZONE) {
 			launch_window();
 		}
@@ -181,7 +180,7 @@ public class VisionTool implements Runnable {
 //		vision_tool.forkJoinPool = new ForkJoinPool(NUMBER_OF_THREADS);
 //		vision_tool.queue = new ArrayBlockingQueue(NUMBER_OF_THREADS);
 
-		webcamImage = getImage();
+		webcamImage = webcam.getImage();
 		if(MODE == Mode.TEST_ZONE) {
 			print_clicked_colors(webcamImage);
 		}
@@ -193,13 +192,18 @@ public class VisionTool implements Runnable {
 //			while(System.currentTimeMillis() < time + 100);
 //			time += 100; // System.currentTimeMillis();
 
-			time = System.currentTimeMillis();
+//			time = System.currentTimeMillis();
 			
 //			System.out.println(">>> Image Capture " + (System.currentTimeMillis() - time));
 			time = System.currentTimeMillis();
+			VisionResult result;
+			BufferedImage tmp_webcam_image;
 			synchronized(webcamImage) {
-				server.send(VisionProcessTask.onethread(webcamImage));
+				tmp_webcam_image = webcamImage;
 			}
+			result = VisionProcessTask.onethread(tmp_webcam_image);
+
+			server.send(result);
 			System.out.println(">>> Vision Process" + (System.currentTimeMillis() - time));
 //			VisionProcessTask t = new VisionProcessTask(webcam);
 //			vision_tool.forkJoinPool.execute(t);
@@ -224,8 +228,9 @@ public class VisionTool implements Runnable {
 	**/
 	public void run() {
 		while(true) {
+			BufferedImage tmp_webcam_image = webcam.getImage();
 			synchronized(webcamImage) {
-				webcamImage = getImage();
+				webcamImage = tmp_webcam_image;
 			}
 //			VisionProcessTask task = queue.poll();
 //			if(task != null) {
